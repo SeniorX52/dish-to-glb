@@ -1,0 +1,82 @@
+{
+  "dataset": "gingerbread",
+  "n_images": 85,
+  "resolution": "4624x2604",
+  "working_resolution_max_dim": 2000,
+  "camera": {
+    "samsung SM-A715F": 85
+  },
+  "gpu": "Intel(R) Graphics",
+  "cuda_available": false,
+  "cpu": "Intel(R) Core(TM) Ultra 7 155U",
+  "cpu_threads": 14,
+  "ram_gb": 31.5,
+  "os": "Windows 11",
+  "torch": "2.13.0+cpu",
+  "stages": [
+    {
+      "name": "s0_ingest",
+      "seconds": 50.65,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 315.8,
+      "status": "ok"
+    },
+    {
+      "name": "s1_masks",
+      "seconds": 1210.94,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 3282.2,
+      "status": "ok"
+    },
+    {
+      "name": "s2_colmap",
+      "seconds": 534.07,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 9155.4,
+      "status": "ok"
+    },
+    {
+      "name": "s3_mvs",
+      "seconds": 53.78,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 1186.4,
+      "status": "ok"
+    },
+    {
+      "name": "s3b_realityscan",
+      "seconds": 0.0,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 0.0,
+      "status": "skipped",
+      "reason": "RealityScan/RealityCapture is not installed on this machine. It is also unusable here: Epic requires a GPU with CUDA Compute Capability 3.5+ (or AMD RDNA 3/3.5/4 since 2.2) to create models or textures, and this box has Intel integrated graphics only. Install + rerun on the CUDA machine to produce the comparison. Citation: https://dev.epicgames.com/documentation/realityscan/hardware-and-software-requirements"
+    },
+    {
+      "name": "s4_cleanup",
+      "seconds": 8.08,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 272.0,
+      "status": "ok"
+    },
+    {
+      "name": "s5_export",
+      "seconds": 43.86,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 1403.0,
+      "status": "ok"
+    },
+    {
+      "name": "s5b_render",
+      "seconds": 12.33,
+      "peak_vram_mb": 0.0,
+      "peak_ram_mb": 1007.9,
+      "status": "ok"
+    }
+  ],
+  "total_seconds": 1913.71,
+  "outputs": {
+    "glb_mb": 0.76,
+    "usdz_mb": 7.05,
+    "obj_mb": 13.97,
+    "tris": 120000
+  }
+}

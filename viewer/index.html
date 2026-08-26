@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MANAH — reconstructed dish</title>
+<!--
+  Static viewer. No framework, no build step.
+
+  Serve it (fetch() of benchmark.json is blocked on file://):
+      python -m http.server 8000
+      http://localhost:8000/viewer/?dataset=gingerbread
+
+  model-viewer 4.3.1. Draco-compressed GLB needs no client configuration --
+  the decoder is fetched on demand. If you switch s5_export to meshopt you
+  must also set ModelViewerElement.meshoptDecoderLocation before the first
+  <model-viewer> element exists, or the model silently fails to load.
+-->
+<script type="module"
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f4f6; --fg:#16161a; --muted:#6b6b76; --line:#dededf; --card:#fff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#111114; --fg:#ececf0; --muted:#9a9aa6; --line:#2a2a31; --card:#191920; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+  header{padding:14px 20px; border-bottom:1px solid var(--line); background:var(--card)}
+  h1{margin:0; font-size:16px; font-weight:650; letter-spacing:-.01em}
+  header p{margin:3px 0 0; color:var(--muted); font-size:13px}
+  model-viewer{
+    flex:1; width:100%; min-height:60vh;
+    background-color:var(--bg);
+    --poster-color:transparent;
+  }
+  footer{
+    padding:10px 20px; border-top:1px solid var(--line); background:var(--card);
+    color:var(--muted); font-size:12.5px;
+    display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center;
+  }
+  footer b{color:var(--fg); font-weight:600}
+  #err{padding:20px; color:#b4232a}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">MANAH — reconstructed dish</h1>
+  <p id="sub">loading…</p>
+</header>
+
+<model-viewer id="mv"
+  alt="Photogrammetry reconstruction of a single dish, table removed"
+  camera-controls
+  touch-action="pan-y"
+  auto-rotate
+  auto-rotate-delay="1200"
+  environment-image="neutral"
+  shadow-intensity="1"
+  exposure="1.05"
+  ar
+  ar-modes="webxr scene-viewer quick-look">
+</model-viewer>
+
+<footer id="caption"></footer>
+<div id="err" hidden></div>
+
+<script type="module">
+const params  = new URLSearchParams(location.search);
+const dataset = params.get('dataset') || 'gingerbread';
+const base    = `../outputs/${dataset}`;
+
+const mv = document.getElementById('mv');
+mv.src = `${base}/model.glb`;
+mv.setAttribute('ios-src', `${base}/model.usdz`);
+
+document.getElementById('title').textContent = `MANAH — ${dataset}`;
+
+const fmt = s => s >= 3600 ? `${(s/3600).toFixed(1)} h`
+              : s >= 60   ? `${(s/60).toFixed(1)} min`
+                          : `${s.toFixed(1)} s`;
+
+fetch(`${base}/benchmark.json`)
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(b => {
+    document.getElementById('sub').textContent =
+      `${b.n_images} images · ${b.resolution} · ${b.camera && Object.keys(b.camera)[0] || 'unknown camera'}`;
+    const bits = [
+      ['dataset',            b.dataset],
+      ['images',             b.n_images],
+      ['total processing',   fmt(b.total_seconds)],
+      ['triangles',          (b.outputs?.tris ?? 0).toLocaleString()],
+      ['GLB',                `${b.outputs?.glb_mb ?? 0} MB`],
+      ['USDZ',               b.outputs?.usdz_mb ? `${b.outputs.usdz_mb} MB` : 'not produced'],
+      ['hardware',           `${b.cpu} · ${b.gpu}${b.cuda_available ? ' (CUDA)' : ' (no CUDA)'}`],
+    ];
+    document.getElementById('caption').innerHTML =
+      bits.map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join('');
+  })
+  .catch(() => {
+    document.getElementById('sub').textContent = dataset;
+    document.getElementById('caption').innerHTML =
+      `<span>benchmark.json not readable — serve over HTTP: ` +
+      `<code>python -m http.server 8000</code> then ` +
+      `<code>http://localhost:8000/viewer/?dataset=${dataset}</code></span>`;
+  });
+
+mv.addEventListener('error', e => {
+  const d = document.getElementById('err');
+  d.hidden = false;
+  d.textContent = `Failed to load ${base}/model.glb — run the pipeline first, ` +
+                  `and serve the folder over HTTP rather than opening the file directly.`;
+});
+</script>
+</body>
+</html>
