@@ -26,6 +26,7 @@ python run.py --dataset own_dish        # your photos in data/own_dish/images/ �
 | doc | contents |
 |---|---|
 | [RESULTS.md](RESULTS.md) | measured stage timings, masked-vs-unmasked alignment table, renders |
+| [CALIBRATION_NOTE.md](CALIBRATION_NOTE.md) | printing and calipering the ChArUco board — read before capture |
 | [SETUP.md](SETUP.md) | exact environment reproduction, every version pinned, every landmine documented |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | production design: phone vs backend split, cost model, licensing |
 
@@ -35,6 +36,27 @@ Background isolation is not just a quality feature — it is the main per-scan c
 control. Masking during COLMAP *alignment* starved registration (60/85 images vs
 83/85 unmasked), but masking during *densification* confined depth estimation to
 ~13% of each frame's pixels. Align unmasked, densify masked.
+
+## Metric scale — the printed ChArUco board
+
+```bash
+python pipeline/make_charuco_pdf.py     # -> outputs/charuco/charuco_a4_7x6_25mm.pdf
+```
+
+A4, 7×6 grid, 25.00 mm squares, drawn as **vector** geometry so it prints at the
+printer's own resolution rather than at a baked-in dpi. The generator rasterises
+its own PDF, runs OpenCV's ChArUco detector over it and diffs it against
+`CharucoBoard.generateImage()`; it refuses to report success unless every marker
+decodes to the right id in the right square and the square spacing is within two
+raster pixels of nominal.
+
+**Printing it is not the last step.** Consumer printers rescale — "fit to page"
+on an A4→Letter driver is a 3.4% error, and that lands directly on every
+dimension the pipeline reports. The sheet carries two solid reference bars
+(125.00 mm and 75.00 mm) to measure with calipers; the readings go in
+`config/charuco.json` and *that* is what gets used. Until they do,
+`effective_square_mm` is `None`, not `25.0`. See
+[CALIBRATION_NOTE.md](CALIBRATION_NOTE.md).
 
 ## Viewer
 

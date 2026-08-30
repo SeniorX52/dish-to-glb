@@ -1,0 +1,24 @@
+{
+  "_comment": "Physical ChArUco reference board. 'board' is what was DRAWN; 'calibration' is what was MEASURED off the printed sheet and is what the pipeline actually uses. See CALIBRATION_NOTE.md.",
+  "board": {
+    "squares_x": 7,
+    "squares_y": 6,
+    "square_mm": 25.0,
+    "marker_mm": 19.0,
+    "dictionary": "DICT_5X5_1000",
+    "page": "a4"
+  },
+  "calibration": {
+    "nominal_span_x_mm": 125.0,
+    "nominal_span_y_mm": 75.0,
+    "measured_span_x_mm": null,
+    "measured_span_y_mm": null,
+    "measured_square_mm": null,
+    "measured_on": null,
+    "measured_by": null,
+    "instrument": null,
+    "printed_on": null,
+    "paper": null,
+    "notes": null
+  }
+}

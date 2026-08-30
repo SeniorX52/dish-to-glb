@@ -257,6 +257,117 @@ sharp **0.35.4** / libvips **8.18.6**, obj2gltf **3.2.0**.
 
 ---
 
+## 6b. ChArUco reference board (metric scale)
+
+Generates the printable board PDF at exact physical size:
+
+```bash
+python pipeline/make_charuco_pdf.py            # A4, 7x6, 25.00 mm squares
+python pipeline/make_charuco_pdf.py --verify   # + rasterised self-check
+python tests/test_charuco.py                   # calibration maths self-tests
+```
+
+Outputs `outputs/charuco/charuco_a4_7x6_25mm.pdf` and `config/charuco.json`.
+**The PDF is not usable until the printed sheet has been measured with calipers
+— see [CALIBRATION_NOTE.md](CALIBRATION_NOTE.md).**
+
+### Where this was built, and what that means for the pin table
+
+Sections 0–6 above describe the Windows box that produced `RESULTS.md`. This
+section was built and verified on a **different machine**, and the versions below
+are read off that one:
+
+| | |
+|---|---|
+| OS | Ubuntu 20.04.6 LTS (Linux 5.15.0-139) |
+| Python | 3.8.10 |
+| opencv-python | **4.13.0.92** |
+| reportlab | **3.5.34** |
+| numpy | 1.24.4 |
+| pillow | 10.4.0 |
+| poppler-utils (`pdftoppm`) | 0.86.1 |
+
+`reportlab` is the one genuinely new Python dependency. On the Windows pipeline
+box:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install reportlab
+```
+
+> Not yet run there, so there is no verified Windows version to pin. reportlab
+> is pure Python with no native extensions and the generator uses only
+> `canvas`, `pagesizes`, `units` and `pdfmetrics.stringWidth` — API surface that
+> has been stable since 3.x. Pin whatever pip resolves on that box, then re-run
+> `python pipeline/make_charuco_pdf.py --verify` and confirm `"pass": true`
+> before printing.
+
+### `cv2.aruco` does not need opencv-contrib any more
+
+This is the landmine. Every ArUco tutorial older than 2023 tells you to install
+`opencv-contrib-python`, and half of them still use the constructor names that
+were deleted.
+
+**ArUco moved out of contrib into the main `objdetect` module in OpenCV 4.7.0.**
+Verified here on plain `opencv-python 4.13.0.92`:
+
+```
+cv2.getBuildInformation() contains "contrib" -> False
+cv2.aruco.CharucoDetector                    -> present
+```
+
+So the `opencv-python 5.0.0.93` already pinned in §1 carries ArUco and **no
+contrib package is needed** — do not install one alongside, two OpenCV wheels in
+one process is its own class of problem. (Not re-verified on that box; check
+`hasattr(cv2.aruco, "CharucoDetector")` there once.)
+
+The 4.7 API rename, which is what actually breaks copied code:
+
+| what you want | 4.7+ | the removed name every tutorial still uses |
+|---|---|---|
+| dictionary | `aruco.getPredefinedDictionary(aruco.DICT_5X5_1000)` | `aruco.Dictionary_get(...)` |
+| board | `aruco.CharucoBoard((7, 6), 25.0, 19.0, dic)` | `aruco.CharucoBoard_create(7, 6, ...)` |
+| detect board | `aruco.CharucoDetector(board).detectBoard(img)` | `aruco.interpolateCornersCharuco(...)` |
+| draw board | `board.generateImage((w, h), marginSize, borderBits)` | `board.draw(...)` |
+
+Note the board size is now a **tuple**, and `CharucoBoard` takes
+`(size, squareLength, markerLength, dictionary)` — a different argument order
+from `CharucoBoard_create`.
+
+### Why the PDF is vector, not a raster
+
+The board is drawn as PDF rectangles at millimetre coordinates rather than as an
+embedded bitmap. A raster board at 600 dpi quantises every marker-bit boundary to
+~0.042 mm and softens the corners the whole measurement depends on; vector output
+is rendered at the printer's own resolution instead.
+
+### `--verify` needs poppler
+
+The self-check shells out to `pdftoppm` (poppler-utils) to rasterise the finished
+PDF, then runs OpenCV's detector over the result. It runs automatically when
+`pdftoppm` is on PATH and is skipped with a printed note when it is not — it is a
+check on the generator, not a runtime dependency of the pipeline.
+
+- Ubuntu/Debian: `sudo apt install poppler-utils`
+- Windows: not packaged; either skip it (`--no-verify`) or use the poppler
+  Windows builds and put `pdftoppm.exe` on PATH.
+
+Measured on the shipped board (600 dpi, one raster pixel = 0.0423 mm):
+
+| check | result |
+|---|---|
+| page raster | 4961 x 7016 px — A4 exactly |
+| markers decoded / expected | 21 / 21, ids correct and in the right squares |
+| interior corners found | 30 / 30 |
+| pixels differing from `CharucoBoard.generateImage()`, off-edge | **0** |
+| worst marker-centre position error | 0.048 mm |
+| worst square-spacing error | 0.024 mm (0.094%) |
+
+Off-edge difference of zero means the vector geometry is identical to OpenCV's
+own render of the same board; the remaining ~0.29% of differing pixels are all
+anti-aliasing on edges.
+
+---
+
 ## 7. Dataset
 
 ```bash
@@ -283,6 +394,7 @@ python run.py --dataset own_dish
 ## 8. Running it
 
 ```powershell
+python pipeline/make_charuco_pdf.py                    # printable board (do this first)
 python run.py --dataset gingerbread                    # full chain
 python run.py --dataset gingerbread --only s1_masks    # one stage
 python run.py --dataset gingerbread --from s4_cleanup  # resume
